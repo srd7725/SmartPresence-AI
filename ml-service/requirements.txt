@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+opencv-python
+mediapipe
+deepface
+tf-keras
+numpy
+pandas
+requests
+python-multipart
+python-dotenv
+scikit-learn

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: smartpresence-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smartpresence
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: smartpresence-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/smartpresence
+      SECRET_KEY: supersecretkey
+      ALGORITHM: HS256
+    depends_on:
+      - db
+
+  ml-service:
+    build: ./ml-service
+    container_name: smartpresence-ml
+    ports:
+      - "8001:8001"
+    depends_on:
+      - backend
+
+  frontend:
+    build: ./frontend
+    container_name: smartpresence-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
