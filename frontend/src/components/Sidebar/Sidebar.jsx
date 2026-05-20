@@ -1,16 +1,56 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiHome, FiVideo, FiActivity, FiUsers, FiSettings, FiX, FiCpu } from 'react-icons/fi';
+import { FiHome, FiVideo, FiActivity, FiUsers, FiSettings, FiX, FiCpu, FiCamera } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import useAuth from '../../hooks/useAuth';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
-  const navItems = [
-    { name: 'Dashboard', path: '/student-dashboard', icon: <FiHome /> },
-    { name: 'Teacher Panel', path: '/teacher-dashboard', icon: <FiUsers /> },
-    { name: 'Live Classroom', path: '/live-classroom', icon: <FiVideo /> },
-    { name: 'Analytics', path: '/analytics', icon: <FiActivity /> },
-    { name: 'Admin', path: '/admin', icon: <FiSettings /> },
+  const { user } = useAuth();
+
+  // Define navigation items with role restrictions if applicable
+  const allNavItems = [
+    { 
+      name: 'Student Dashboard', 
+      path: '/student-dashboard', 
+      icon: <FiHome />,
+      roles: ['student']
+    },
+    { 
+      name: 'Teacher Dashboard', 
+      path: '/teacher-dashboard', 
+      icon: <FiUsers />,
+      roles: ['teacher']
+    },
+    { 
+      name: 'Admin Panel', 
+      path: '/admin', 
+      icon: <FiSettings />,
+      roles: ['admin']
+    },
+    { 
+      name: 'Live Classroom', 
+      path: '/live-classroom', 
+      icon: <FiVideo />,
+      roles: ['student', 'teacher', 'admin']
+    },
+    { 
+      name: 'Analytics', 
+      path: '/analytics', 
+      icon: <FiActivity />,
+      roles: ['student', 'teacher', 'admin']
+    },
+    {
+      name: 'Face Enrollment',
+      path: '/face-enrollment',
+      icon: <FiCamera />,
+      roles: ['student'] // Students enroll their faces
+    }
   ];
+
+  // Filter navigation items based on current user's role
+  const navItems = allNavItems.filter(item => 
+    !item.roles || (user?.role && item.roles.includes(user.role))
+  );
 
   const sidebarVariants = {
     open: { x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },

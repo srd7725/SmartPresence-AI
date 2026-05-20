@@ -1,8 +1,23 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiCamera, FiCheck, FiRefreshCw, FiArrowRight, FiSmile } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiCamera, FiCheck, FiRefreshCw, FiArrowRight, FiSmile, FiAlertTriangle } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import api from '../services/api';
+
+// Helper to convert base64 image capture to a File object for multipart upload
+const base64ToFile = (base64String, filename) => {
+  const arr = base64String.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
 
 const FaceEnrollment = () => {
   const webcamRef = useRef(null);
@@ -16,6 +31,7 @@ const FaceEnrollment = () => {
   });
   const [isCapturing, setIsCapturing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [cameraError, setCameraError] = useState(null);
 
   const steps = [
     { title: "Let's Get Started", desc: "Position yourself in a well-lit area.", icon: <FiSmile /> },
@@ -26,27 +42,69 @@ const FaceEnrollment = () => {
     { title: "Enrollment Complete", desc: "Your identity has been securely stored." }
   ];
 
-  const capture = useCallback(() => {
-    setIsCapturing(true);
-    const imageSrc = webcamRef.current.getScreenshot();
+  const handleUserMedia = () => {
+    setCameraError(null);
+  };
+
+  const handleUserMediaError = (error) => {
+    console.error("Camera connection failed:", error);
+    setCameraError("Camera access denied or unavailable. Please grant permission in browser settings.");
+    toast.error("Camera access failed. Check browser permissions.");
+  };
+
+  const capture = useCallback(async () => {
+    if (!webcamRef.current) return;
     
-    // Simulate AI processing
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 10;
-      setProgress(currentProgress);
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setCaptures(prev => ({ ...prev, [steps[step].angle]: imageSrc }));
+    setIsCapturing(true);
+    setProgress(15);
+    
+    try {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) {
+        throw new Error("Could not capture image from webcam feed.");
+      }
+
+      const currentAngle = steps[step].angle;
+      setProgress(40);
+
+      // Save temporarily in state
+      setCaptures(prev => ({ ...prev, [currentAngle]: imageSrc }));
+
+      // Convert to file and prepare multipart form data
+      const file = base64ToFile(imageSrc, `${currentAngle}.jpg`);
+      const formData = new FormData();
+      formData.append("angle", currentAngle);
+      formData.append("file", file);
+
+      setProgress(75);
+
+      // Call API
+      await api.post('/ai/face-enroll', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setProgress(100);
+      toast.success(`${currentAngle.charAt(0).toUpperCase() + currentAngle.slice(1)} angle enrolled!`);
+
+      setTimeout(() => {
         setIsCapturing(false);
         setProgress(0);
         setStep(prev => prev + 1);
-      }
-    }, 100);
+      }, 400);
+
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Failed to upload face capture. Please retry.");
+      setIsCapturing(false);
+      setProgress(0);
+    }
   }, [webcamRef, step]);
 
   const handleComplete = () => {
-    navigate('/student/dashboard');
+    // Redirect to student-dashboard on success
+    navigate('/student-dashboard');
   };
 
   return (
@@ -69,19 +127,37 @@ const FaceEnrollment = () => {
              <div className="aspect-[4/3] rounded-[2rem] overflow-hidden glass border-2 border-white/5 relative">
                 {step > 0 && step < 5 ? (
                   <>
-                    <Webcam
-                      audio={false}
-                      ref={webcamRef}
-                      screenshotFormat="image/jpeg"
-                      className="w-full h-full object-cover"
-                      videoConstraints={{ facingMode: "user" }}
-                    />
+                    {cameraError ? (
+                      <div className="w-full h-full bg-dark-lightest flex flex-col items-center justify-center p-6 text-center">
+                        <FiAlertTriangle className="text-6xl text-red-500 mb-4 animate-bounce" />
+                        <h4 className="text-lg font-bold text-white mb-2">Camera Access Error</h4>
+                        <p className="text-sm text-gray-400 max-w-xs">{cameraError}</p>
+                        <button 
+                          onClick={() => setCameraError(null)}
+                          className="mt-6 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 text-xs transition-all flex items-center gap-2 font-semibold"
+                        >
+                          <FiRefreshCw /> Retry Camera Access
+                        </button>
+                      </div>
+                    ) : (
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        onUserMedia={handleUserMedia}
+                        onUserMediaError={handleUserMediaError}
+                        className="w-full h-full object-cover"
+                        videoConstraints={{ facingMode: "user" }}
+                      />
+                    )}
                     {/* Face Guide Overlay */}
-                    <div className="absolute inset-0 border-[40px] border-dark/60 pointer-events-none">
-                       <div className="w-full h-full border-2 border-dashed border-primary/50 rounded-[3rem] flex items-center justify-center">
-                          <div className="w-48 h-64 border-2 border-accent rounded-[10rem]"></div>
-                       </div>
-                    </div>
+                    {!cameraError && (
+                      <div className="absolute inset-0 border-[40px] border-dark/60 pointer-events-none">
+                         <div className="w-full h-full border-2 border-dashed border-primary/50 rounded-[3rem] flex items-center justify-center">
+                            <div className="w-48 h-64 border-2 border-accent rounded-[10rem]"></div>
+                         </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="w-full h-full bg-dark-lighter flex items-center justify-center">

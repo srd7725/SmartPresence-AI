@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiCalendar, FiClock, FiActivity, FiUser, FiAward, FiAlertTriangle, FiBookOpen } from 'react-icons/fi';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import useAuth from '../hooks/useAuth';
 
 const data = [
   { name: 'Mon', attendance: 100, engagement: 85 },
@@ -12,105 +13,89 @@ const data = [
 ];
 
 const StudentDashboard = () => {
+  const { user } = useAuth();
+  
+  const displayName = user?.full_name || 'Student User';
+  const displayDepartment = user?.department || 'Not Assigned';
+  const displayEnrollment = user?.enrollment_number || 'N/A';
+
   return (
-    <div className="min-h-screen bg-dark flex flex-col md:flex-row">
-      {/* Sidebar - Placeholder */}
-      <div className="w-full md:w-64 glass-dark border-r border-white/5 p-6 flex flex-col gap-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">SP</div>
-          <span className="font-bold text-lg">SmartPresence</span>
+    <div className="space-y-8">
+      {/* Top Welcome Panel */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Student Dashboard</h1>
+          <p className="text-gray-400">Welcome back, {displayName}</p>
         </div>
-        <nav className="flex flex-col gap-2">
-           <button className="flex items-center gap-3 p-3 bg-primary/10 text-primary rounded-xl font-medium"><FiActivity /> Dashboard</button>
-           <button className="flex items-center gap-3 p-3 hover:bg-white/5 text-gray-400 rounded-xl font-medium transition-all"><FiCalendar /> Schedule</button>
-           <button className="flex items-center gap-3 p-3 hover:bg-white/5 text-gray-400 rounded-xl font-medium transition-all"><FiAward /> Grades</button>
-           <button className="flex items-center gap-3 p-3 hover:bg-white/5 text-gray-400 rounded-xl font-medium transition-all"><FiUser /> Profile</button>
-        </nav>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <div className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-bold">Student Dashboard</h1>
-            <p className="text-gray-400">Welcome back, John Doe</p>
-          </div>
-          <div className="flex items-center gap-4">
-             <div className="text-right hidden md:block">
-                <p className="text-sm font-bold">John Doe</p>
-                <p className="text-xs text-gray-500">Computer Science</p>
-             </div>
-             <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full border-2 border-white/10"></div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: "Attendance", value: "92%", icon: <FiCheckCircle className="text-accent"/>, color: "bg-accent/10" },
+          { label: "Engagement", value: "88/100", icon: <FiActivity className="text-primary"/>, color: "bg-primary/10" },
+          { label: "Classes Attended", value: "48", icon: <FiBookOpen className="text-secondary"/>, color: "bg-secondary/10" },
+          { label: "Warnings", value: "2", icon: <FiAlertTriangle className="text-red-400"/>, color: "bg-red-400/10" }
+        ].map((stat, i) => (
+          <motion.div 
+            key={i} 
+            whileHover={{ y: -5 }}
+            className="glass p-6 rounded-3xl border border-white/5"
+          >
+            <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center text-xl mb-4`}>
+              {stat.icon}
+            </div>
+            <p className="text-gray-400 text-sm">{stat.label}</p>
+            <h3 className="text-2xl font-bold">{stat.value}</h3>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Performance & Schedule */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Chart */}
+        <div className="lg:col-span-2 glass p-8 rounded-[2rem] border border-white/5">
+          <h3 className="text-xl font-bold mb-8">Weekly Performance</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                <XAxis dataKey="name" stroke="#64748b" />
+                <YAxis stroke="#64748b" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff' }}
+                />
+                <Area type="monotone" dataKey="engagement" stroke="#6366f1" fillOpacity={1} fill="url(#colorEngagement)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-           {[
-             { label: "Attendance", value: "92%", icon: <FiCheckCircle className="text-accent"/>, color: "bg-accent/10" },
-             { label: "Engagement", value: "88/100", icon: <FiActivity className="text-primary"/>, color: "bg-primary/10" },
-             { label: "Classes Attended", value: "48", icon: <FiBookOpen className="text-secondary"/>, color: "bg-secondary/10" },
-             { label: "Warnings", value: "2", icon: <FiAlertTriangle className="text-red-400"/>, color: "bg-red-400/10" }
-           ].map((stat, i) => (
-             <motion.div 
-               key={i} 
-               whileHover={{ y: -5 }}
-               className="glass p-6 rounded-3xl border border-white/5"
-             >
-                <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center text-xl mb-4`}>
-                   {stat.icon}
+        {/* Upcoming Classes */}
+        <div className="glass p-8 rounded-[2rem] border border-white/5">
+          <h3 className="text-xl font-bold mb-6">Today's Schedule</h3>
+          <div className="space-y-4">
+            {[
+              { time: "09:00 AM", subject: "Machine Learning", prof: "Dr. Smith", status: "Active" },
+              { time: "11:30 AM", subject: "Computer Networks", prof: "Prof. Johnson", status: "Upcoming" },
+              { time: "02:00 PM", subject: "Cyber Security", prof: "Dr. Brown", status: "Upcoming" }
+            ].map((item, i) => (
+              <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs font-mono text-accent">{item.time}</span>
+                  {item.status === 'Active' && <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-[10px] animate-pulse">LIVE</span>}
                 </div>
-                <p className="text-gray-400 text-sm">{stat.label}</p>
-                <h3 className="text-2xl font-bold">{stat.value}</h3>
-             </motion.div>
-           ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           {/* Chart */}
-           <div className="lg:col-span-2 glass p-8 rounded-[2rem] border border-white/5">
-              <h3 className="text-xl font-bold mb-8">Weekly Performance</h3>
-              <div className="h-[300px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
-                       <defs>
-                          <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
-                             <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                             <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                          </linearGradient>
-                       </defs>
-                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                       <XAxis dataKey="name" stroke="#64748b" />
-                       <YAxis stroke="#64748b" />
-                       <Tooltip 
-                         contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff' }}
-                       />
-                       <Area type="monotone" dataKey="engagement" stroke="#6366f1" fillOpacity={1} fill="url(#colorEngagement)" />
-                    </AreaChart>
-                 </ResponsiveContainer>
+                <h4 className="font-bold">{item.subject}</h4>
+                <p className="text-xs text-gray-500">{item.prof}</p>
               </div>
-           </div>
-
-           {/* Upcoming Classes */}
-           <div className="glass p-8 rounded-[2rem] border border-white/5">
-              <h3 className="text-xl font-bold mb-6">Today's Schedule</h3>
-              <div className="space-y-4">
-                 {[
-                   { time: "09:00 AM", subject: "Machine Learning", prof: "Dr. Smith", status: "Active" },
-                   { time: "11:30 AM", subject: "Computer Networks", prof: "Prof. Johnson", status: "Upcoming" },
-                   { time: "02:00 PM", subject: "Cyber Security", prof: "Dr. Brown", status: "Upcoming" }
-                 ].map((item, i) => (
-                   <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
-                      <div className="flex justify-between items-start mb-2">
-                         <span className="text-xs font-mono text-accent">{item.time}</span>
-                         {item.status === 'Active' && <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-[10px] animate-pulse">LIVE</span>}
-                      </div>
-                      <h4 className="font-bold">{item.subject}</h4>
-                      <p className="text-xs text-gray-500">{item.prof}</p>
-                   </div>
-                 ))}
-              </div>
-           </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
