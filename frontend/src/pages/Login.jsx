@@ -91,7 +91,7 @@ const Login = () => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-md glass p-10 md:p-12 rounded-[3rem] border border-white/10 relative"
+        className="w-full max-w-3xl glass p-8 sm:p-10 md:px-16 md:py-14 rounded-[2.5rem] border border-white/10 relative"
       >
         {/* Logo */}
         <div className="flex justify-center mb-8">
@@ -105,7 +105,7 @@ const Login = () => {
           <p className="text-gray-400">Continue your AI-powered learning</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 md:space-y-7">
           {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300 ml-1">Email Address</label>

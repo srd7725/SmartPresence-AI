@@ -2,7 +2,7 @@
 // Navbar — with real user data + logout button
 // ===========================================
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FiMenu, FiBell, FiSearch, FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -13,6 +13,13 @@ const Navbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'New class started', detail: 'CS-402 is now live', tone: 'text-accent', unread: true },
+    { id: 2, title: 'Alert: Multiple faces detected', detail: 'In session ML-202', tone: 'text-red-400', unread: true },
+    { id: 3, title: 'Database backup complete', detail: 'Automated backup finished successfully', tone: 'text-green-400', unread: false },
+  ]);
+
+  const unreadCount = notifications.filter((item) => item.unread).length;
 
   // Handle logout — clears auth state and redirects to login
   const handleLogout = () => {
@@ -20,6 +27,11 @@ const Navbar = ({ toggleSidebar }) => {
     logout();
     toast.success('Logged out successfully');
     navigate('/login', { replace: true });
+  };
+
+  const markNotificationsRead = () => {
+    setNotifications((current) => current.map((item) => ({ ...item, unread: false })));
+    toast.success('Notifications marked as read');
   };
 
   // Get display name and role label from real user data
@@ -65,22 +77,41 @@ const Navbar = ({ toggleSidebar }) => {
             className="relative p-2 text-gray-300 hover:text-white transition-colors rounded-full hover:bg-white/5"
           >
             <FiBell className="text-xl" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            {unreadCount > 0 && (
+              <>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              </>
+            )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 glass p-4 rounded-2xl border border-white/10 shadow-2xl">
-              <h4 className="text-sm font-bold mb-3">Notifications</h4>
+            <div className="absolute right-0 mt-2 w-72 glass p-4 rounded-2xl border border-white/10 shadow-2xl z-50">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold">Notifications</h4>
+                <button onClick={markNotificationsRead} className="text-xs text-primary hover:text-primary-light transition-colors">
+                  Mark read
+                </button>
+              </div>
               <div className="space-y-2">
-                <div className="p-2 rounded-xl bg-white/5 text-sm">
-                  <p className="font-semibold text-accent">New class started</p>
-                  <p className="text-xs text-gray-400">CS-402 is now live</p>
-                </div>
-                <div className="p-2 rounded-xl bg-white/5 text-sm">
-                  <p className="font-semibold text-red-400">Alert: Multiple faces detected</p>
-                  <p className="text-xs text-gray-400">In session ML-202</p>
-                </div>
+                {notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    onClick={() => {
+                      setNotifications((current) => current.map((item) => (
+                        item.id === notification.id ? { ...item, unread: false } : item
+                      )));
+                      toast.success(notification.title);
+                    }}
+                    className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`font-semibold ${notification.tone}`}>{notification.title}</p>
+                      {notification.unread && <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0" />}
+                    </div>
+                    <p className="text-xs text-gray-400">{notification.detail}</p>
+                  </button>
+                ))}
               </div>
             </div>
           )}
