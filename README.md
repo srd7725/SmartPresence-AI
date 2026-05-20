@@ -106,3 +106,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Developed with ❤️ for the future of education.
 # update
+## Authentication Working
+- JWT auth and role-based access tested successfully.
