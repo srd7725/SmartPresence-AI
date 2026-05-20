@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     )
 
     # JWT SECURITY
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super_secret_key_for_smart_presence_ai")
+    SECRET_KEY: str = "smartpresence_secret_key"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # AI SERVICE
     ML_SERVICE_URL: str = os.getenv("ML_SERVICE_URL", "http://localhost:8001")

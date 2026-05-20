@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.config import settings
 
 # API Routers
@@ -27,7 +30,48 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Import models so they are registered with SQLAlchemy
+    # Global Exception Handlers
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request, exc: StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "success": False,
+                "message": exc.detail
+            }
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request, exc: RequestValidationError):
+        # Format validation errors beautifully
+        errors = exc.errors()
+        error_messages = []
+        for err in errors:
+            loc = " -> ".join(str(x) for x in err["loc"] if x != "body")
+            msg = err["msg"]
+            error_messages.append(f"{loc}: {msg}" if loc else msg)
+        
+        detail_msg = "; ".join(error_messages)
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "success": False,
+                "message": f"Validation Error: {detail_msg}"
+            }
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request, exc: Exception):
+        # Gracefully handle internal errors
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "success": False,
+                "message": f"Internal Server Error: {str(exc)}"
+            }
+        )
+
+    # Import models so they are registered with SQLAlchemy Base metadata
     from app.models.user import User
     from app.models.classroom import Classroom
     from app.models.attendance import Attendance
@@ -37,10 +81,9 @@ def create_app() -> FastAPI:
     from app.models.face_embedding import FaceEmbedding
 
     # Initialize Database Tables
-    # In a production setting, use Alembic for migrations instead.
     try:
         Base.metadata.create_all(bind=engine)
-        print("Database tables created successfully.")
+        print("Database tables initialized/checked successfully.")
     except Exception as e:
         print(f"Warning: Could not connect to the database or create tables. {e}")
 
@@ -59,11 +102,26 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def root():
-        return {"message": f"Welcome to {settings.PROJECT_NAME} Backend."}
+        return {
+            "success": True,
+            "message": f"Welcome to {settings.PROJECT_NAME} Backend API.",
+            "data": {
+                "project": settings.PROJECT_NAME,
+                "version": settings.VERSION,
+                "api_base": settings.API_V1_STR
+            }
+        }
 
     @app.get("/health", tags=["health"])
     def health_check():
-        return {"status": "healthy", "version": settings.VERSION}
+        return {
+            "success": True,
+            "message": "Service is running healthy.",
+            "data": {
+                "status": "healthy",
+                "version": settings.VERSION
+            }
+        }
 
     return app
 
