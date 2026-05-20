@@ -1,10 +1,13 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Layouts
 import MainLayout from '../layouts/MainLayout';
 import AuthLayout from '../layouts/AuthLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
+
+// Routes Guard
+import ProtectedRoute from './ProtectedRoute';
 
 // Pages
 import LandingPage from '../pages/LandingPage';
@@ -34,22 +37,37 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
       </Route>
 
-      {/* Enrollment (Standalone layout or AuthLayout depending on preference, using AuthLayout for now to have the animated background) */}
-      <Route element={<AuthLayout />}>
-        <Route path="/face-enrollment" element={<FaceEnrollment />} />
-        <Route path="/enrollment" element={<FaceEnrollment />} /> {/* Redirect alias */}
+      {/* Enrollment Routes - Protected for Students */}
+      <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+        <Route element={<AuthLayout />}>
+          <Route path="/face-enrollment" element={<FaceEnrollment />} />
+          <Route path="/enrollment" element={<FaceEnrollment />} /> {/* Redirect alias */}
+        </Route>
       </Route>
 
-      {/* Dashboard Routes */}
-      <Route element={<DashboardLayout />}>
-        <Route path="/student-dashboard" element={<StudentDashboard />} />
-        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-        <Route path="/live-classroom" element={<LiveClassroom />} />
-        <Route path="/classroom/:id" element={<LiveClassroom />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/settings" element={<Settings />} />
+      {/* Protected General Dashboard Layout */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          {/* Shared Routes */}
+          <Route path="/live-classroom" element={<LiveClassroom />} />
+          <Route path="/classroom/:id" element={<LiveClassroom />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+
+          {/* Role-Specific Routes with sub-guards */}
+          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+            <Route path="/student-dashboard" element={<StudentDashboard />} />
+          </Route>
+          
+          <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+            <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin" element={<AdminPanel />} />
+          </Route>
+        </Route>
       </Route>
 
       {/* 404 Not Found */}
